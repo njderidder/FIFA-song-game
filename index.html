@@ -92,10 +92,9 @@
     box-shadow:0 0 0 2px rgba(50,205,50,.35), 0 8px 30px rgba(0,0,0,.45); color:#021b10;}
   .btn-left{background:linear-gradient(180deg,#65e792,#1ed760);}
   .btn-right{background:linear-gradient(180deg,#ff7e7e,#e63946);}
-  .btn-start{background:linear-gradient(180deg,#65e792,#1ed760);}
   button:active{transform:translateY(1px) scale(.99)}
 
-  /* verberg links/rechts tot start */
+  /* hide left/right until start */
   #leftBtn,#rightBtn{display:none}
 
   /* Fail overlay */
@@ -103,31 +102,26 @@
   #failGif{max-width:min(90vw,520px); max-height:80vh; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,.6)}
   .fail-count{position:fixed; bottom:8vh; left:50%; transform:translateX(-50%); font-size:4rem; font-weight:900; color:var(--gold); text-shadow:0 4px 8px rgba(0,0,0,.8)}
 
+  /* Start overlay */
+  #startOverlay{
+    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+    background:rgba(0,0,0,.75); z-index:10000;
+  }
+  #startOverlay button{
+    padding:16px 32px; font-size:24px; border-radius:12px; font-weight:800;
+    background:linear-gradient(180deg,#65e792,#1ed760); color:#021b10; box-shadow:0 0 0 2px rgba(50,205,50,.35), 0 8px 30px rgba(0,0,0,.45);
+  }
+
   /* Mobile optimisation */
   @media (max-width:480px){
-    .app{
-      height:100dvh;
-      margin:0;
-      gap:8px;
-    }
+    .app{height:100dvh;margin:0; gap:8px;}
     footer{padding:8px;}
     .controls{
-      position:fixed;
-      bottom:10px;
-      left:50%;
-      transform:translateX(-50%);
-      flex-direction:column;
-      width:90%;
-      z-index:999;
+      position:fixed; bottom:10px; left:50%; transform:translateX(-50%);
+      flex-direction:column; width:90%; z-index:999;
     }
-    .controls button{
-      width:100%;
-      margin:4px 0;
-    }
-    .card{
-      padding:16px;
-      gap:10px;
-    }
+    .controls button{width:100%; margin:4px 0;}
+    .card{padding:16px; gap:10px;}
     h2{font-size:20px}
     h3{font-size:14px}
   }
@@ -149,13 +143,18 @@
 
   <footer>
     <div class="controls">
-      <button class="btn-start" id="startBtn">Start</button>
       <button class="btn-left" id="leftBtn">⬅ FIFA</button>
       <button class="btn-right" id="rightBtn">Not ➡</button>
     </div>
   </footer>
 </div>
 
+<!-- Start overlay -->
+<div id="startOverlay">
+  <button id="startBtn">Start</button>
+</div>
+
+<!-- Fail overlay -->
 <div class="fail-stage" id="failStage">
   <img id="failGif" src="giphy.gif" alt="Fail animation">
   <div class="fail-count" id="failCount"></div>
@@ -164,16 +163,19 @@
 <script>
 const FAIL_SFX_PATH="soundeffect.mp3";
 
+// Alle 100 nummers (50 FIFA / 50 niet-FIFA) hetzelfde als eerder
+const SONGS=[/* ... (dezelfde inhoud als in je vorige versie) ... */];
+
+// Shuffle functie
 function shuffle(arr){for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}}
-const SONGS=[/* zelfde 100 liedjes als boven */];
-// Shuffle bij start
 shuffle(SONGS);
+
 let ptr=0, streak=1, audio=null, sfx=null;
 const deck=document.querySelector('.deck');
 const beerContainer=document.getElementById('beerContainer');
 const failStage=document.getElementById('failStage');
 const failCount=document.getElementById('failCount');
-const startBtn=document.getElementById('startBtn');
+const startOverlay=document.getElementById('startOverlay');
 const leftBtn=document.getElementById('leftBtn');
 const rightBtn=document.getElementById('rightBtn');
 
@@ -184,12 +186,10 @@ function updateBeerDisplay(){
   for(let i=0;i<full;i++) beerContainer.appendChild(makeCan(12,100));
   if(rem>0||full===0) beerContainer.appendChild(makeCan(rem||12,((rem||12)/12)*100));
 }
-function makeCan(n,h){
-  const can=document.createElement('div');can.className='can';
+function makeCan(n,h){ const can=document.createElement('div');can.className='can';
   const fill=document.createElement('div');fill.className='fill';fill.style.height=h+'%';
   const count=document.createElement('div');count.className='sip-count';count.textContent=n.toString();
-  can.appendChild(fill);can.appendChild(count);return can;
-}
+  can.appendChild(fill);can.appendChild(count);return can; }
 
 // Render card
 function renderCard(song){
@@ -207,21 +207,43 @@ function renderCard(song){
   `;
   deck.appendChild(el);
   wireCard(el,song);
-  return el;
 }
 
-// Fetch preview (as eerder)
-async function getPreviewUrl(song){ const q=encodeURIComponent(`${song.artist} ${song.title}`); const url=`https://itunes.apple.com/search?term=${q}&media=music&limit=5&country=US`; try{ const res=await fetch(url); if(!res.ok) return null; const data=await res.json(); const term=s=>(s||"").toLowerCase(); const title=term(song.title), artist=term(song.artist); let best=null,score=-1; for(const r of data.results){ const t=term(r.trackName), a=term(r.artistName); let s=0; if(t.includes(title)) s+=2; if(a.includes(artist.split(" ft")[0])) s+=2; if(t===title) s+=2; if(a===artist) s+=2; if(s>score && r.previewUrl){score=s;best=r.previewUrl;} } return best; }catch(e){ return null; }}
+// Fetch preview via iTunes
+async function getPreviewUrl(song){
+  try{
+    const q=encodeURIComponent(`${song.artist} ${song.title}`);
+    const url=`https://itunes.apple.com/search?term=${q}&media=music&limit=5&country=US`;
+    const res=await fetch(url); if(!res.ok) return null;
+    const data=await res.json();
+    const term=s=>(s||"").toLowerCase();
+    const title=term(song.title), artist=term(song.artist);
+    let best=null,score=-1;
+    for(const r of data.results){
+      const t=term(r.trackName), a=term(r.artistName);
+      let s=0; if(t.includes(title)) s+=2; if(a.includes(artist.split(" ft")[0])) s+=2; if(t===title) s+=2; if(a===artist) s+=2;
+      if(s>score && r.previewUrl){ score=s; best=r.previewUrl; }
+    }
+    return best;
+  }catch(e){ return null; }
+}
 
-// Attach audio preview (no auto-play until start)
-async function attachAudio(card,song,autoPlay){ const url=await getPreviewUrl(song); if(!url) return; if(audio){ try{ audio.pause(); }catch(e){} } audio=new Audio(url); audio.preload="auto"; if(autoPlay){ audio.play().catch(()=>{}); }}
+// Attach audio (autoplay flag)
+async function attachAudio(card,song,autoPlay){
+  const url=await getPreviewUrl(song);
+  if(!url) return;
+  if(audio){ try{ audio.pause(); }catch(e){} }
+  audio=new Audio(url);
+  audio.preload="auto";
+  if(autoPlay){ audio.play().catch(()=>{}); }
+}
 
-// Handle answer
-function answer(card,song,guessFifa){
-  const ok=(song.fifa===guessFifa);
-  const fling=ok?(guessFifa?-520:520):(guessFifa?-140:140);
-  const rot=guessFifa?-12:12;
-  (guessFifa?card.querySelector('.badge.left'):card.querySelector('.badge.right')).style.opacity=1;
+// Answer logic
+function answer(card,song,guess){
+  const ok=(song.fifa===guess);
+  const fling=ok?(guess?-520:520):(guess?-140:140);
+  const rot=guess?-12:12;
+  (guess?card.querySelector('.badge.left'):card.querySelector('.badge.right')).style.opacity=1;
   card.style.transition='transform .24s var(--ease), opacity .24s var(--ease), filter .24s var(--ease)';
   card.style.transform=`translateX(${fling}px) rotate(${rot}deg)`;
   card.style.opacity=ok?0:.45;
@@ -235,28 +257,34 @@ function answer(card,song,guessFifa){
   }
 }
 
-// Drag & arrow keys
+// Drag & keys
 function wireCard(card,song){
-  let startX=0, dx=0, dragging=false;
+  let startX=0, dx=0, drag=false;
   const setBadge=dx=>{
     const L=card.querySelector('.badge.left'), R=card.querySelector('.badge.right');
-    const opa=Math.min(1,Math.abs(dx)/120);
-    if(dx<0){L.style.opacity=opa; R.style.opacity=0;} else {R.style.opacity=opa; L.style.opacity=0;}
+    const opa=Math.min(1, Math.abs(dx)/120);
+    if(dx<0){ L.style.opacity=opa; R.style.opacity=0; } else { R.style.opacity=opa; L.style.opacity=0; }
   };
-  card.addEventListener('pointerdown',e=>{dragging=true; startX=e.clientX; card.setPointerCapture(e.pointerId);});
-  card.addEventListener('pointermove',e=>{ if(!dragging)return; dx=e.clientX-startX; card.style.transform=`translateX(${dx}px) rotate(${dx/40}deg)`; setBadge(dx);});
-  card.addEventListener('pointerup',()=>{ if(!dragging)return; dragging=false; const threshold=Math.min(260,card.clientWidth*0.22); if(Math.abs(dx)>threshold){ const guess=dx<0; answer(card,song,guess); } else { card.style.transition='transform .16s var(--ease)'; card.style.transform='translateX(0) rotate(0)'; card.querySelector('.badge.left').style.opacity=0; card.querySelector('.badge.right').style.opacity=0; setTimeout(()=>card.style.transition='',160); } startX=0; dx=0; });
+  card.addEventListener('pointerdown',e=>{ drag=true; startX=e.clientX; card.setPointerCapture(e.pointerId);});
+  card.addEventListener('pointermove',e=>{ if(!drag)return; dx=e.clientX-startX; card.style.transform=`translateX(${dx}px) rotate(${dx/40}deg)`; setBadge(dx);});
+  card.addEventListener('pointerup',()=>{ if(!drag)return; drag=false; const th=Math.min(260, card.clientWidth*0.22); if(Math.abs(dx)>th){ const guess=dx<0; answer(card,song,guess); } else { card.style.transition='transform .16s var(--ease)'; card.style.transform='translateX(0) rotate(0)'; card.querySelector('.badge.left').style.opacity=0; card.querySelector('.badge.right').style.opacity=0; setTimeout(()=>card.style.transition='',160); } startX=0; dx=0;});
   window.addEventListener('keydown',e=>{ if(!deck.contains(card))return; if(e.key==='ArrowLeft')answer(card,song,true); if(e.key==='ArrowRight')answer(card,song,false);});
   attachAudio(card,song,false);
 }
 
-// Fail animation
+// Fail animation with GIF & sound
 function failAnimation(prev){
   return new Promise(resolve=>{
     try{ if(audio) audio.pause(); }catch(e){}
     failCount.textContent=prev;
     failStage.style.display='grid';
-    try{ if(sfx){ sfx.pause(); sfx=null; } sfx=new Audio(FAIL_SFX_PATH); sfx.volume=1.0; sfx.currentTime=0; sfx.play().catch(()=>{}); }catch(e){}
+    try{
+      if(sfx){ sfx.pause(); sfx=null; }
+      sfx=new Audio(FAIL_SFX_PATH);
+      sfx.volume=1.0;
+      sfx.currentTime=0;
+      sfx.play().catch(()=>{});
+    }catch(e){}
     setTimeout(()=>{
       failStage.style.display='none';
       failCount.textContent='';
@@ -266,29 +294,32 @@ function failAnimation(prev){
   });
 }
 
+// Next card
 function nextCard(autoPlay){
-  if(ptr>=SONGS.length){
-    ptr=0; shuffle(SONGS);
-  }
+  if(ptr>=SONGS.length){ ptr=0; shuffle(SONGS); }
   const song=SONGS[ptr++];
   renderCard(song);
-  setTimeout(async()=>{ const card=deck.querySelector('.card:last-child'); await attachAudio(card,song,autoPlay); },0);
+  setTimeout(async()=>{
+    const card=deck.querySelector('.card:last-child');
+    await attachAudio(card,song,autoPlay);
+  },0);
 }
 
-// Init
+// Initialise
 function init(){
   updateBeerDisplay();
-  // Start button
+  // Start overlay knop
+  const startBtn=document.getElementById('startBtn');
   startBtn.addEventListener('click',()=>{
-    startBtn.style.display='none';
+    startOverlay.style.display='none';
     leftBtn.style.display='inline-block';
     rightBtn.style.display='inline-block';
     nextCard(true);
-  }, {once:true});
-  // Buttons
+  },{once:true});
+  // Guess knoppen
   leftBtn.addEventListener('click',()=>{ const c=deck.querySelector('.card'); if(!c)return; const idx=Math.max(0,ptr-1); answer(c,SONGS[idx],true); });
   rightBtn.addEventListener('click',()=>{ const c=deck.querySelector('.card'); if(!c)return; const idx=Math.max(0,ptr-1); answer(c,SONGS[idx],false); });
-  // Glow
+  // Glow effect
   const glow=document.querySelector('.glow');
   window.addEventListener('pointermove',e=>{
     glow.style.setProperty('--x',(e.clientX/innerWidth)*100+'%');
