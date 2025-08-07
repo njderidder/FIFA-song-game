@@ -109,7 +109,8 @@
   }
   #startOverlay button{
     padding:16px 32px; font-size:24px; border-radius:12px; font-weight:800;
-    background:linear-gradient(180deg,#65e792,#1ed760); color:#021b10; box-shadow:0 0 0 2px rgba(50,205,50,.35), 0 8px 30px rgba(0,0,0,.45);
+    background:linear-gradient(180deg,#65e792,#1ed760); color:#021b10;
+    box-shadow:0 0 0 2px rgba(50,205,50,.35), 0 8px 30px rgba(0,0,0,.45);
   }
 
   /* Mobile optimisation */
@@ -161,13 +162,116 @@
 </div>
 
 <script>
+// pad waar je MP3 staat
 const FAIL_SFX_PATH="soundeffect.mp3";
 
-// Alle 100 nummers (50 FIFA / 50 niet-FIFA) hetzelfde als eerder
-const SONGS=[/* ... (dezelfde inhoud als in je vorige versie) ... */];
+// Nummers: 50 FIFA + 50 niet-FIFA
+const SONGS=[
+  { title:"Song 2", artist:"Blur", fifa:true },
+  { title:"The Rockafeller Skank", artist:"Fatboy Slim", fifa:true },
+  { title:"Jerk It Out", artist:"Caesars", fifa:true },
+  { title:"On Top of the World", artist:"Imagine Dragons", fifa:true },
+  { title:"Love Me Again", artist:"John Newman", fifa:true },
+  { title:"Red Morning Light", artist:"Kings of Leon", fifa:true },
+  { title:"19-2000 (Soulchild Remix)", artist:"Gorillaz", fifa:true },
+  { title:"To Get Down", artist:"Timo Maas", fifa:true },
+  { title:"Samba de Janeiro", artist:"Bellini", fifa:true },
+  { title:"Ready to Go", artist:"Republica", fifa:true },
+  { title:"Sell Out", artist:"Reel Big Fish", fifa:true },
+  { title:"Pumping on Your Stereo", artist:"Supergrass", fifa:true },
+  { title:"Someday", artist:"The Strokes", fifa:true },
+  { title:"Kids", artist:"MGMT", fifa:true },
+  { title:"Are You Gonna Be My Girl", artist:"Jet", fifa:true },
+  { title:"Shut Up and Let Me Go", artist:"The Ting Tings", fifa:true },
+  { title:"You Get What You Give", artist:"New Radicals", fifa:true },
+  { title:"Let Forever Be", artist:"The Chemical Brothers", fifa:true },
+  { title:"Banquet", artist:"Bloc Party", fifa:true },
+  { title:"Bend and Break", artist:"Keane", fifa:true },
+  { title:"Blue Monday", artist:"New Order", fifa:true },
+  { title:"Club Foot", artist:"Kasabian", fifa:true },
+  { title:"Drunken Lullabies", artist:"Flogging Molly", fifa:true },
+  { title:"Spitfire", artist:"The Prodigy", fifa:true },
+  { title:"I Predict a Riot", artist:"Kaiser Chiefs", fifa:true },
+  { title:"I Bet You Look Good on the Dancefloor", artist:"Arctic Monkeys", fifa:true },
+  { title:"Munich", artist:"Editors", fifa:true },
+  { title:"Olympic Airways", artist:"Foals", fifa:true },
+  { title:"Young Folks", artist:"Peter Bjorn and John", fifa:true },
+  { title:"1234", artist:"Feist", fifa:true },
+  { title:"Here It Goes Again", artist:"OK Go", fifa:true },
+  { title:"Heat Wave", artist:"Glass Animals", fifa:true },
+  { title:"Nevermind", artist:"Dennis Lloyd", fifa:true },
+  { title:"Soy Yo", artist:"Bomba Estéreo", fifa:true },
+  { title:"Team", artist:"Lorde", fifa:true },
+  { title:"Bang Bang", artist:"will.i.am", fifa:true },
+  { title:"Chimes", artist:"Hudson Mohawke", fifa:true },
+  { title:"Lean On", artist:"Major Lazer & DJ Snake", fifa:true },
+  { title:"Broccoli", artist:"D.R.A.M. ft. Lil Yachty", fifa:true },
+  { title:"Feel It Still", artist:"Portugal. The Man", fifa:true },
+  { title:"Wavin' Flag", artist:"K'naan", fifa:true },
+  { title:"No Problem", artist:"Fugees", fifa:true },
+  { title:"Pompeii", artist:"Bastille", fifa:true },
+  { title:"Don’t Kill My Vibe", artist:"Sigrid", fifa:true },
+  { title:"Chandelier", artist:"Sia", fifa:true },
+  { title:"One Way or Another", artist:"Blondie", fifa:true },
+  { title:"Est-ce que tu m'aimes ?", artist:"Maître Gims", fifa:true },
+  { title:"Helicopter", artist:"Bloc Party", fifa:true },
+  { title:"Call It What You Want", artist:"Foster the People", fifa:true },
+  { title:"Tokyo (Vampires & Wolves)", artist:"The Wombats", fifa:true },
+  // Niet-FIFA
+  { title:"Blinding Lights", artist:"The Weeknd", fifa:false },
+  { title:"Uptown Funk", artist:"Mark Ronson ft. Bruno Mars", fifa:false },
+  { title:"Shape of You", artist:"Ed Sheeran", fifa:false },
+  { title:"Somebody That I Used to Know", artist:"Gotye", fifa:false },
+  { title:"Rolling in the Deep", artist:"Adele", fifa:false },
+  { title:"Lose Yourself", artist:"Eminem", fifa:false },
+  { title:"Smells Like Teen Spirit", artist:"Nirvana", fifa:false },
+  { title:"Hotel California", artist:"Eagles", fifa:false },
+  { title:"Billie Jean", artist:"Michael Jackson", fifa:false },
+  { title:"Stairway to Heaven", artist:"Led Zeppelin", fifa:false },
+  { title:"Sweet Child O' Mine", artist:"Guns N' Roses", fifa:false },
+  { title:"Livin' on a Prayer", artist:"Bon Jovi", fifa:false },
+  { title:"I Will Always Love You", artist:"Whitney Houston", fifa:false },
+  { title:"Bohemian Rhapsody", artist:"Queen", fifa:false },
+  { title:"Hey Ya!", artist:"OutKast", fifa:false },
+  { title:"Where Is the Love?", artist:"Black Eyed Peas", fifa:false },
+  { title:"Bad Romance", artist:"Lady Gaga", fifa:false },
+  { title:"Happy", artist:"Pharrell Williams", fifa:false },
+  { title:"Someone Like You", artist:"Adele", fifa:false },
+  { title:"Despacito", artist:"Luis Fonsi & Daddy Yankee", fifa:false },
+  { title:"Gangnam Style", artist:"PSY", fifa:false },
+  { title:"Bad Guy", artist:"Billie Eilish", fifa:false },
+  { title:"Old Town Road", artist:"Lil Nas X ft. Billy Ray Cyrus", fifa:false },
+  { title:"All of Me", artist:"John Legend", fifa:false },
+  { title:"Roar", artist:"Katy Perry", fifa:false },
+  { title:"Firework", artist:"Katy Perry", fifa:false },
+  { title:"Radioactive", artist:"Imagine Dragons", fifa:false },
+  { title:"Thunder", artist:"Imagine Dragons", fifa:false },
+  { title:"Numb", artist:"Linkin Park", fifa:false },
+  { title:"In the End", artist:"Linkin Park", fifa:false },
+  { title:"Take On Me", artist:"a-ha", fifa:false },
+  { title:"Eye of the Tiger", artist:"Survivor", fifa:false },
+  { title:"Killing Me Softly", artist:"Fugees", fifa:false },
+  { title:"Ride", artist:"Twenty One Pilots", fifa:false },
+  { title:"Stressed Out", artist:"Twenty One Pilots", fifa:false },
+  { title:"Closer", artist:"The Chainsmokers ft. Halsey", fifa:false },
+  { title:"Shake It Off", artist:"Taylor Swift", fifa:false },
+  { title:"Bang Bang", artist:"Jessie J, Ariana Grande & Nicki Minaj", fifa:false },
+  { title:"One Dance", artist:"Drake", fifa:false },
+  { title:"God's Plan", artist:"Drake", fifa:false },
+  { title:"Rockstar", artist:"Post Malone ft. 21 Savage", fifa:false },
+  { title:"Sunflower", artist:"Post Malone & Swae Lee", fifa:false },
+  { title:"SICKO MODE", artist:"Travis Scott", fifa:false },
+  { title:"7 Rings", artist:"Ariana Grande", fifa:false },
+  { title:"Havana", artist:"Camila Cabello", fifa:false },
+  { title:"Dance Monkey", artist:"Tones and I", fifa:false },
+  { title:"Out of the Woods", artist:"Taylor Swift", fifa:false },
+  { title:"TNT", artist:"AC/DC", fifa:false },
+  { title:"Jump", artist:"Van Halen", fifa:false },
+  { title:"Brown Eyed Girl", artist:"Van Morrison", fifa:false }
+];
 
-// Shuffle functie
-function shuffle(arr){for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}}
+// Shuffle at start
+function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } }
 shuffle(SONGS);
 
 let ptr=0, streak=1, audio=null, sfx=null;
@@ -179,7 +283,7 @@ const startOverlay=document.getElementById('startOverlay');
 const leftBtn=document.getElementById('leftBtn');
 const rightBtn=document.getElementById('rightBtn');
 
-// Update cans
+// Beer cans update
 function updateBeerDisplay(){
   beerContainer.innerHTML="";
   const full=Math.floor(streak/12); const rem=streak%12;
@@ -209,26 +313,26 @@ function renderCard(song){
   wireCard(el,song);
 }
 
-// Fetch preview via iTunes
+// Preview
 async function getPreviewUrl(song){
   try{
     const q=encodeURIComponent(`${song.artist} ${song.title}`);
-    const url=`https://itunes.apple.com/search?term=${q}&media=music&limit=5&country=US`;
-    const res=await fetch(url); if(!res.ok) return null;
+    const res=await fetch(`https://itunes.apple.com/search?term=${q}&media=music&limit=5&country=US`);
+    if(!res.ok) return null;
     const data=await res.json();
     const term=s=>(s||"").toLowerCase();
-    const title=term(song.title), artist=term(song.artist);
+    const t0=term(song.title), a0=term(song.artist);
     let best=null,score=-1;
     for(const r of data.results){
       const t=term(r.trackName), a=term(r.artistName);
-      let s=0; if(t.includes(title)) s+=2; if(a.includes(artist.split(" ft")[0])) s+=2; if(t===title) s+=2; if(a===artist) s+=2;
+      let s=0; if(t.includes(t0)) s+=2; if(a.includes(a0.split(" ft")[0])) s+=2; if(t===t0) s+=2; if(a===a0) s+=2;
       if(s>score && r.previewUrl){ score=s; best=r.previewUrl; }
     }
     return best;
   }catch(e){ return null; }
 }
 
-// Attach audio (autoplay flag)
+// Attach audio
 async function attachAudio(card,song,autoPlay){
   const url=await getPreviewUrl(song);
   if(!url) return;
@@ -238,7 +342,7 @@ async function attachAudio(card,song,autoPlay){
   if(autoPlay){ audio.play().catch(()=>{}); }
 }
 
-// Answer logic
+// Answer
 function answer(card,song,guess){
   const ok=(song.fifa===guess);
   const fling=ok?(guess?-520:520):(guess?-140:140);
@@ -257,22 +361,32 @@ function answer(card,song,guess){
   }
 }
 
-// Drag & keys
+// Card interactions
 function wireCard(card,song){
   let startX=0, dx=0, drag=false;
   const setBadge=dx=>{
     const L=card.querySelector('.badge.left'), R=card.querySelector('.badge.right');
-    const opa=Math.min(1, Math.abs(dx)/120);
-    if(dx<0){ L.style.opacity=opa; R.style.opacity=0; } else { R.style.opacity=opa; L.style.opacity=0; }
+    const o=Math.min(1, Math.abs(dx)/120);
+    if(dx<0){ L.style.opacity=o; R.style.opacity=0; } else { R.style.opacity=o; L.style.opacity=0; }
   };
   card.addEventListener('pointerdown',e=>{ drag=true; startX=e.clientX; card.setPointerCapture(e.pointerId);});
   card.addEventListener('pointermove',e=>{ if(!drag)return; dx=e.clientX-startX; card.style.transform=`translateX(${dx}px) rotate(${dx/40}deg)`; setBadge(dx);});
-  card.addEventListener('pointerup',()=>{ if(!drag)return; drag=false; const th=Math.min(260, card.clientWidth*0.22); if(Math.abs(dx)>th){ const guess=dx<0; answer(card,song,guess); } else { card.style.transition='transform .16s var(--ease)'; card.style.transform='translateX(0) rotate(0)'; card.querySelector('.badge.left').style.opacity=0; card.querySelector('.badge.right').style.opacity=0; setTimeout(()=>card.style.transition='',160); } startX=0; dx=0;});
-  window.addEventListener('keydown',e=>{ if(!deck.contains(card))return; if(e.key==='ArrowLeft')answer(card,song,true); if(e.key==='ArrowRight')answer(card,song,false);});
+  card.addEventListener('pointerup',()=>{
+    if(!drag) return; drag=false;
+    const th=Math.min(260, card.clientWidth*0.22);
+    if(Math.abs(dx)>th){ const guess=dx<0; answer(card,song,guess); }
+    else{ card.style.transition='transform .16s var(--ease)'; card.style.transform='translateX(0) rotate(0)'; card.querySelector('.badge.left').style.opacity=0; card.querySelector('.badge.right').style.opacity=0; setTimeout(()=>card.style.transition='',160); }
+    startX=0; dx=0;
+  });
+  window.addEventListener('keydown',e=>{
+    if(!deck.contains(card)) return;
+    if(e.key==='ArrowLeft') answer(card,song,true);
+    if(e.key==='ArrowRight') answer(card,song,false);
+  });
   attachAudio(card,song,false);
 }
 
-// Fail animation with GIF & sound
+// Fail animation
 function failAnimation(prev){
   return new Promise(resolve=>{
     try{ if(audio) audio.pause(); }catch(e){}
@@ -281,8 +395,7 @@ function failAnimation(prev){
     try{
       if(sfx){ sfx.pause(); sfx=null; }
       sfx=new Audio(FAIL_SFX_PATH);
-      sfx.volume=1.0;
-      sfx.currentTime=0;
+      sfx.volume=1.0; sfx.currentTime=0;
       sfx.play().catch(()=>{});
     }catch(e){}
     setTimeout(()=>{
@@ -299,27 +412,31 @@ function nextCard(autoPlay){
   if(ptr>=SONGS.length){ ptr=0; shuffle(SONGS); }
   const song=SONGS[ptr++];
   renderCard(song);
-  setTimeout(async()=>{
-    const card=deck.querySelector('.card:last-child');
-    await attachAudio(card,song,autoPlay);
-  },0);
+  // attach preview after card added
+  setTimeout(async()=>{ const card=deck.querySelector('.card:last-child'); await attachAudio(card,song,autoPlay); },0);
 }
 
-// Initialise
+// Init
 function init(){
   updateBeerDisplay();
-  // Start overlay knop
   const startBtn=document.getElementById('startBtn');
   startBtn.addEventListener('click',()=>{
     startOverlay.style.display='none';
     leftBtn.style.display='inline-block';
     rightBtn.style.display='inline-block';
     nextCard(true);
-  },{once:true});
-  // Guess knoppen
-  leftBtn.addEventListener('click',()=>{ const c=deck.querySelector('.card'); if(!c)return; const idx=Math.max(0,ptr-1); answer(c,SONGS[idx],true); });
-  rightBtn.addEventListener('click',()=>{ const c=deck.querySelector('.card'); if(!c)return; const idx=Math.max(0,ptr-1); answer(c,SONGS[idx],false); });
-  // Glow effect
+  }, {once:true});
+  leftBtn.addEventListener('click',()=>{
+    const c=deck.querySelector('.card'); if(!c) return;
+    const idx=Math.max(0,ptr-1);
+    answer(c,SONGS[idx],true);
+  });
+  rightBtn.addEventListener('click',()=>{
+    const c=deck.querySelector('.card'); if(!c) return;
+    const idx=Math.max(0,ptr-1);
+    answer(c,SONGS[idx],false);
+  });
+  // Glow following cursor
   const glow=document.querySelector('.glow');
   window.addEventListener('pointermove',e=>{
     glow.style.setProperty('--x',(e.clientX/innerWidth)*100+'%');
