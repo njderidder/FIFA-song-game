@@ -45,8 +45,21 @@
   .title{font-weight:800; letter-spacing:.2px; font-size:20px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:65vw;}
   .muted{color:var(--ink-dim); font-weight:600}
 
-  /* Beer wrapper, cans with red star, and sip total */
-  .beer-wrapper{
+  .deck{position:relative; overflow:visible;}
+
+  .card{
+    position:absolute; inset:0;
+    display:grid; grid-template-rows:auto auto auto 1fr auto;
+    gap:10px; padding:20px; border-radius:var(--radius);
+    background:linear-gradient(180deg, #0c2417cc, var(--glass));
+    box-shadow:0 1px 0 #ffffff1a inset, 0 20px 60px #00000055, 0 0 0 1px #16ff7a1c inset;
+    backdrop-filter:blur(14px) saturate(140%); transform-origin:center bottom; user-select:none; will-change:transform, opacity;
+  }
+  .chip{align-self:start; justify-self:start; padding:6px 10px; border-radius:999px; font-size:12px; font-weight:700; color:#d9ffdf; background:#103a24cc; box-shadow:0 4px 12px #00000033;}
+  h2{margin:4px 0 0; font-size:28px; letter-spacing:.2px}
+  h3{margin:0; font-weight:600; color:var(--ink-sub)}
+  /* Biergedeelte in kaart */
+  .beer-card{
     display:flex;
     flex-direction:column;
     align-items:center;
@@ -92,22 +105,8 @@
     color:var(--ink-sub);
     font-size:0.9rem;
   }
-
-  .deck{position:relative; overflow:visible;}
-  .card{
-    position:absolute; inset:0;
-    display:grid; grid-template-rows:auto auto 1fr auto;
-    gap:14px; padding:20px; border-radius:var(--radius);
-    background:linear-gradient(180deg, #0c2417cc, var(--glass));
-    box-shadow:0 1px 0 #ffffff1a inset, 0 20px 60px #00000055, 0 0 0 1px #16ff7a1c inset;
-    backdrop-filter:blur(14px) saturate(140%); transform-origin:center bottom; user-select:none; will-change:transform, opacity;
-  }
-  .chip{align-self:start; justify-self:start; padding:6px 10px; border-radius:999px; font-size:12px; font-weight:700; color:#d9ffdf; background:#103a24cc; box-shadow:0 4px 12px #00000033;}
-  h2{margin:4px 0 0; font-size:28px; letter-spacing:.2px}
-  h3{margin:0; font-weight:600; color:var(--ink-sub)}
-  .audioWrap{display:grid; grid-template-columns:auto; align-items:center; gap:12px;
-    background:#05130a; border-radius:14px; padding:12px; box-shadow:inset 0 0 0 1px #16ff7a1c;}
-  .playBtn,.trackbar,.time{display:none}
+  /* Audio wrapper hidden */
+  .audioWrap{display:none;}
 
   .badge{position:absolute; top:18px; padding:12px 14px; border-radius:12px; font-weight:900; letter-spacing:.3px; transform:scale(.9); opacity:0; pointer-events:none; mix-blend-mode:screen;}
   .badge.left{left:18px; background:#00ffa31c; color:var(--good); border:2px solid #00ffa3; transform:rotate(-6deg);}
@@ -179,7 +178,7 @@
 <body>
 <div class="glow" aria-hidden="true"></div>
 
-<div class="app" role="application" aria-label="FIFA Swipe game">
+<div class="app" role="application">
   <header>
     <div class="brand">
       <div class="logo" aria-hidden="true"></div>
@@ -188,12 +187,6 @@
   </header>
 
   <div class="deck" aria-live="polite"></div>
-
-  <!-- Beer display and sip total -->
-  <div class="beer-wrapper">
-    <div class="beer-container" id="beerContainer"></div>
-    <div class="sip-total" id="sipTotal">1</div>
-  </div>
 
   <footer>
     <div class="controls">
@@ -218,10 +211,9 @@
 <button id="gateBtn" class="gate">🔊 Enable sound</button>
 
 <script>
-// Path to your MP3 sound effect
 const FAIL_SFX_PATH="soundeffect.mp3";
 
-// Playlist of 100 songs (50 FIFA + 50 non-FIFA)
+// Song list (50 FIFA + 50 non-FIFA)
 const SONGS=[
   { title:"Song 2", artist:"Blur", fifa:true },
   { title:"The Rockafeller Skank", artist:"Fatboy Slim", fifa:true },
@@ -332,8 +324,6 @@ shuffle(SONGS);
 
 let ptr=0, streak=1, audio=null, sfx=null;
 const deck=document.querySelector('.deck');
-const beerContainer=document.getElementById('beerContainer');
-const sipTotal=document.getElementById('sipTotal');
 const failStage=document.getElementById('failStage');
 const failCount=document.getElementById('failCount');
 const startOverlay=document.getElementById('startOverlay');
@@ -341,8 +331,11 @@ const gateBtn=document.getElementById('gateBtn');
 const leftBtn=document.getElementById('leftBtn');
 const rightBtn=document.getElementById('rightBtn');
 
-// Beer update: create cans with star, fill and sip count
+let beerContainer=null;
+let sipTotal=null;
+
 function updateBeerDisplay(){
+  if(!beerContainer || !sipTotal) return;
   beerContainer.innerHTML="";
   const full=Math.floor(streak/12);
   const rem=streak%12 || 12;
@@ -359,21 +352,26 @@ function createCan(parts){
   can.appendChild(star); can.appendChild(fill); return can;
 }
 
-// Render card
+// Render card with beer container inside
 function renderCard(song){
   const el=document.createElement('div');
   el.className='card';
-  el.setAttribute('role','group');
-  el.setAttribute('aria-label',`${song.title} by ${song.artist}`);
   el.innerHTML=`
     <div class="chip">Swipe links = FIFA • rechts = Niet</div>
     <h2>${song.title}</h2>
     <h3>${song.artist}</h3>
-    <div class="audioWrap"></div>
+    <div class="beer-card">
+      <div class="beer-container"></div>
+      <div class="sip-total"></div>
+    </div>
     <div class="badge left">FIFA ✅</div>
     <div class="badge right">NIET ❌</div>
   `;
   deck.appendChild(el);
+  // set current beerContainer and sipTotal to this card's elements
+  beerContainer=el.querySelector('.beer-container');
+  sipTotal=el.querySelector('.sip-total');
+  updateBeerDisplay();
   wireCard(el,song);
 }
 
@@ -384,7 +382,7 @@ async function getPreviewUrl(song){
     const res=await fetch(`https://itunes.apple.com/search?term=${q}&media=music&limit=5&country=US`);
     if(!res.ok) return null;
     const data=await res.json();
-    const term=s=> (s||"").toLowerCase();
+    const term=s=>(s||"").toLowerCase();
     const t0=term(song.title), a0=term(song.artist);
     let best=null,score=-1;
     for(const r of data.results){
@@ -396,8 +394,8 @@ async function getPreviewUrl(song){
   }catch(e){ return null; }
 }
 
-// Attach audio and handle autoplay
-async function attachAudio(card,song,autoPlay){
+// Attach audio preview and autoPlay (with gate)
+async function attachAudio(song,autoPlay){
   const url=await getPreviewUrl(song);
   if(!url) return;
   if(audio){ try{ audio.pause(); }catch(e){} }
@@ -415,7 +413,7 @@ async function attachAudio(card,song,autoPlay){
   }, {once:true});
 }
 
-// Answer logic
+// Answer handling
 function answer(card,song,guess){
   const ok=(song.fifa===guess);
   const fling=ok?(guess?-520:520):(guess?-140:140);
@@ -434,7 +432,7 @@ function answer(card,song,guess){
   }
 }
 
-// Card interactions (drag, arrows)
+// Card interactions
 function wireCard(card,song){
   let startX=0, dx=0, drag=false;
   const setBadge=dx=>{
@@ -456,10 +454,10 @@ function wireCard(card,song){
     if(e.key==='ArrowLeft') answer(card,song,true);
     if(e.key==='ArrowRight') answer(card,song,false);
   });
-  attachAudio(card,song,false);
+  attachAudio(song,false);
 }
 
-// Fail animation with GIF and sound
+// Fail animation (10 sec)
 function failAnimation(prev){
   return new Promise(resolve=>{
     try{ if(audio) audio.pause(); }catch(e){}
@@ -471,9 +469,7 @@ function failAnimation(prev){
       sfx.volume=1.0;
       const p=sfx.play();
       if(p!==undefined){
-        p.catch(()=>{
-          gateBtn.style.display='block';
-        });
+        p.catch(()=>{ gateBtn.style.display='block'; });
       }
     }catch(e){}
     setTimeout(()=>{
@@ -490,44 +486,36 @@ function nextCard(autoPlay){
   if(ptr>=SONGS.length){ ptr=0; shuffle(SONGS); }
   const song=SONGS[ptr++];
   renderCard(song);
-  setTimeout(async()=>{
-    const card=deck.querySelector('.card:last-child');
-    await attachAudio(card,song,autoPlay);
-  },0);
+  // attach audio after card is in DOM
+  attachAudio(song, autoPlay);
 }
 
-// Initialise
+// Initialise game
 function init(){
-  updateBeerDisplay();
-  // Start button in overlay
-  const startBtn=document.getElementById('startBtn');
-  startBtn.addEventListener('click',()=>{
+  // Start-knop
+  document.getElementById('startBtn').addEventListener('click',()=>{
     startOverlay.style.display='none';
     leftBtn.style.display='inline-block';
     rightBtn.style.display='inline-block';
     nextCard(true);
   }, {once:true});
-  // Enable sound manually
+  // Gate-button (enable sound)
   gateBtn.addEventListener('click',()=>{
-    if(audio){
-      audio.play().then(()=>{ gateBtn.style.display='none'; }).catch(()=>{});
-    }
-    if(sfx){
-      sfx.play().then(()=>{ gateBtn.style.display='none'; }).catch(()=>{});
-    }
+    if(audio){ audio.play().then(()=>{ gateBtn.style.display='none'; }).catch(()=>{}); }
+    if(sfx){ sfx.play().then(()=>{ gateBtn.style.display='none'; }).catch(()=>{}); }
   });
-  // Guess buttons
+  // Guess knoppen
   leftBtn.addEventListener('click',()=>{
-    const c=deck.querySelector('.card'); if(!c) return;
+    const card=deck.querySelector('.card'); if(!card) return;
     const idx=Math.max(0,ptr-1);
-    answer(c,SONGS[idx],true);
+    answer(card,SONGS[idx],true);
   });
   rightBtn.addEventListener('click',()=>{
-    const c=deck.querySelector('.card'); if(!c) return;
+    const card=deck.querySelector('.card'); if(!card) return;
     const idx=Math.max(0,ptr-1);
-    answer(c,SONGS[idx],false);
+    answer(card,SONGS[idx],false);
   });
-  // Glow tracking
+  // Glow animatie
   const glow=document.querySelector('.glow');
   window.addEventListener('pointermove',e=>{
     glow.style.setProperty('--x',(e.clientX/innerWidth)*100+'%');
