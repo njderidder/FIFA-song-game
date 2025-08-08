@@ -45,24 +45,52 @@
   .title{font-weight:800; letter-spacing:.2px; font-size:20px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:65vw;}
   .muted{color:var(--ink-dim); font-weight:600}
 
-  /* Beer cans */
-  .beer-container{display:flex; align-items:flex-end; gap:10px}
+  /* Beer wrapper, cans with red star, and sip total */
+  .beer-wrapper{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:4px;
+    margin-top:8px;
+  }
+  .beer-container{
+    display:flex;
+    align-items:flex-end;
+    gap:8px;
+  }
   .can{
-    position:relative; width:38px; height:80px;
-    border-radius:8px;
-    background:linear-gradient(to bottom,#0d4e29,#05331a);
-    box-shadow:inset 0 -6px 10px rgba(0,0,0,.55), 0 3px 10px rgba(0,0,0,.45);
+    position:relative;
+    width:42px; height:88px;
+    border-radius:8px 8px 6px 6px;
+    background:linear-gradient(to bottom, rgba(13,78,41,0.5), rgba(5,51,26,0.5));
+    box-shadow:inset 0 0 0 2px rgba(255,255,255,0.1), 0 2px 8px rgba(0,0,0,0.5);
     overflow:hidden;
   }
   .can .fill{
-    position:absolute; left:4px; right:4px; bottom:4px; height:0%;
-    background:linear-gradient(to bottom,#f7cf70,#d49f2a);
-    border-radius:4px; transition:height .18s var(--ease);
+    position:absolute;
+    left:4px; right:4px; bottom:4px;
+    height:0%;
+    border-radius:4px;
+    background:linear-gradient(180deg,#ffd466,#f7b801 70%,#ce8f00);
   }
-  .can .sip-count{
-    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-    color:#09200f; font-weight:900; font-size:.9rem; text-shadow:0 1px 0 #ffffff88;
-    pointer-events:none; user-select:none;
+  .can .star{
+    position:absolute;
+    top:8px;
+    left:50%;
+    width:18px;
+    height:18px;
+    transform:translateX(-50%);
+    background:#e53935;
+    clip-path:polygon(
+      50% 0%, 61% 38%, 98% 38%, 68% 62%, 79% 100%,
+      50% 75%, 21% 100%, 32% 62%, 2% 38%, 39% 38%
+    );
+  }
+  .sip-total{
+    text-align:center;
+    font-weight:700;
+    color:var(--ink-sub);
+    font-size:0.9rem;
   }
 
   .deck{position:relative; overflow:visible;}
@@ -94,7 +122,7 @@
   .btn-right{background:linear-gradient(180deg,#ff7e7e,#e63946);}
   button:active{transform:translateY(1px) scale(.99)}
 
-  /* hide left/right until start */
+  /* hide guess buttons until start */
   #leftBtn,#rightBtn{display:none}
 
   /* Fail overlay */
@@ -113,13 +141,33 @@
     box-shadow:0 0 0 2px rgba(50,205,50,.35), 0 8px 30px rgba(0,0,0,.45);
   }
 
+  /* Gate button to enable sound */
+  .gate{
+    position:fixed;
+    bottom:16px;
+    left:50%;
+    transform:translateX(-50%);
+    padding:10px 16px;
+    background:#103a24;
+    border-radius:999px;
+    color:#d9ffdf;
+    font-weight:800;
+    z-index:10000;
+    display:none;
+  }
+
   /* Mobile optimisation */
   @media (max-width:480px){
     .app{height:100dvh;margin:0; gap:8px;}
     footer{padding:8px;}
     .controls{
-      position:fixed; bottom:10px; left:50%; transform:translateX(-50%);
-      flex-direction:column; width:90%; z-index:999;
+      position:fixed;
+      bottom:10px;
+      left:50%;
+      transform:translateX(-50%);
+      flex-direction:column;
+      width:90%;
+      z-index:999;
     }
     .controls button{width:100%; margin:4px 0;}
     .card{padding:16px; gap:10px;}
@@ -137,10 +185,15 @@
       <div class="logo" aria-hidden="true"></div>
       <div class="title">FIFA Swipe <span class="muted">• Links = FIFA, Rechts = Niet</span></div>
     </div>
-    <div class="beer-container" id="beerContainer" aria-hidden="true"></div>
   </header>
 
   <div class="deck" aria-live="polite"></div>
+
+  <!-- Beer display and sip total -->
+  <div class="beer-wrapper">
+    <div class="beer-container" id="beerContainer"></div>
+    <div class="sip-total" id="sipTotal">1</div>
+  </div>
 
   <footer>
     <div class="controls">
@@ -161,11 +214,14 @@
   <div class="fail-count" id="failCount"></div>
 </div>
 
+<!-- Gate button for sound -->
+<button id="gateBtn" class="gate">🔊 Enable sound</button>
+
 <script>
-// pad waar je MP3 staat
+// Path to your MP3 sound effect
 const FAIL_SFX_PATH="soundeffect.mp3";
 
-// Nummers: 50 FIFA + 50 niet-FIFA
+// Playlist of 100 songs (50 FIFA + 50 non-FIFA)
 const SONGS=[
   { title:"Song 2", artist:"Blur", fifa:true },
   { title:"The Rockafeller Skank", artist:"Fatboy Slim", fifa:true },
@@ -217,7 +273,7 @@ const SONGS=[
   { title:"Helicopter", artist:"Bloc Party", fifa:true },
   { title:"Call It What You Want", artist:"Foster the People", fifa:true },
   { title:"Tokyo (Vampires & Wolves)", artist:"The Wombats", fifa:true },
-  // Niet-FIFA
+  // Non-FIFA
   { title:"Blinding Lights", artist:"The Weeknd", fifa:false },
   { title:"Uptown Funk", artist:"Mark Ronson ft. Bruno Mars", fifa:false },
   { title:"Shape of You", artist:"Ed Sheeran", fifa:false },
@@ -270,30 +326,38 @@ const SONGS=[
   { title:"Brown Eyed Girl", artist:"Van Morrison", fifa:false }
 ];
 
-// Shuffle at start
+// Shuffle function
 function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } }
 shuffle(SONGS);
 
 let ptr=0, streak=1, audio=null, sfx=null;
 const deck=document.querySelector('.deck');
 const beerContainer=document.getElementById('beerContainer');
+const sipTotal=document.getElementById('sipTotal');
 const failStage=document.getElementById('failStage');
 const failCount=document.getElementById('failCount');
 const startOverlay=document.getElementById('startOverlay');
+const gateBtn=document.getElementById('gateBtn');
 const leftBtn=document.getElementById('leftBtn');
 const rightBtn=document.getElementById('rightBtn');
 
-// Beer cans update
+// Beer update: create cans with star, fill and sip count
 function updateBeerDisplay(){
   beerContainer.innerHTML="";
-  const full=Math.floor(streak/12); const rem=streak%12;
-  for(let i=0;i<full;i++) beerContainer.appendChild(makeCan(12,100));
-  if(rem>0||full===0) beerContainer.appendChild(makeCan(rem||12,((rem||12)/12)*100));
+  const full=Math.floor(streak/12);
+  const rem=streak%12 || 12;
+  for(let i=0;i<full;i++){
+    beerContainer.appendChild(createCan(12));
+  }
+  beerContainer.appendChild(createCan(rem));
+  sipTotal.textContent=streak.toString();
 }
-function makeCan(n,h){ const can=document.createElement('div');can.className='can';
-  const fill=document.createElement('div');fill.className='fill';fill.style.height=h+'%';
-  const count=document.createElement('div');count.className='sip-count';count.textContent=n.toString();
-  can.appendChild(fill);can.appendChild(count);return can; }
+function createCan(parts){
+  const can=document.createElement('div'); can.className='can';
+  const star=document.createElement('div'); star.className='star';
+  const fill=document.createElement('div'); fill.className='fill'; fill.style.height=(parts/12*100)+'%';
+  can.appendChild(star); can.appendChild(fill); return can;
+}
 
 // Render card
 function renderCard(song){
@@ -313,14 +377,14 @@ function renderCard(song){
   wireCard(el,song);
 }
 
-// Preview
+// Fetch preview
 async function getPreviewUrl(song){
   try{
     const q=encodeURIComponent(`${song.artist} ${song.title}`);
     const res=await fetch(`https://itunes.apple.com/search?term=${q}&media=music&limit=5&country=US`);
     if(!res.ok) return null;
     const data=await res.json();
-    const term=s=>(s||"").toLowerCase();
+    const term=s=> (s||"").toLowerCase();
     const t0=term(song.title), a0=term(song.artist);
     let best=null,score=-1;
     for(const r of data.results){
@@ -332,17 +396,26 @@ async function getPreviewUrl(song){
   }catch(e){ return null; }
 }
 
-// Attach audio
+// Attach audio and handle autoplay
 async function attachAudio(card,song,autoPlay){
   const url=await getPreviewUrl(song);
   if(!url) return;
   if(audio){ try{ audio.pause(); }catch(e){} }
   audio=new Audio(url);
   audio.preload="auto";
-  if(autoPlay){ audio.play().catch(()=>{}); }
+  audio.addEventListener('canplaythrough', ()=>{
+    if(autoPlay){
+      const p=audio.play();
+      if(p!==undefined){
+        p.catch(()=>{
+          gateBtn.style.display='block';
+        });
+      }
+    }
+  }, {once:true});
 }
 
-// Answer
+// Answer logic
 function answer(card,song,guess){
   const ok=(song.fifa===guess);
   const fling=ok?(guess?-520:520):(guess?-140:140);
@@ -361,7 +434,7 @@ function answer(card,song,guess){
   }
 }
 
-// Card interactions
+// Card interactions (drag, arrows)
 function wireCard(card,song){
   let startX=0, dx=0, drag=false;
   const setBadge=dx=>{
@@ -386,7 +459,7 @@ function wireCard(card,song){
   attachAudio(card,song,false);
 }
 
-// Fail animation
+// Fail animation with GIF and sound
 function failAnimation(prev){
   return new Promise(resolve=>{
     try{ if(audio) audio.pause(); }catch(e){}
@@ -395,8 +468,13 @@ function failAnimation(prev){
     try{
       if(sfx){ sfx.pause(); sfx=null; }
       sfx=new Audio(FAIL_SFX_PATH);
-      sfx.volume=1.0; sfx.currentTime=0;
-      sfx.play().catch(()=>{});
+      sfx.volume=1.0;
+      const p=sfx.play();
+      if(p!==undefined){
+        p.catch(()=>{
+          gateBtn.style.display='block';
+        });
+      }
     }catch(e){}
     setTimeout(()=>{
       failStage.style.display='none';
@@ -412,13 +490,16 @@ function nextCard(autoPlay){
   if(ptr>=SONGS.length){ ptr=0; shuffle(SONGS); }
   const song=SONGS[ptr++];
   renderCard(song);
-  // attach preview after card added
-  setTimeout(async()=>{ const card=deck.querySelector('.card:last-child'); await attachAudio(card,song,autoPlay); },0);
+  setTimeout(async()=>{
+    const card=deck.querySelector('.card:last-child');
+    await attachAudio(card,song,autoPlay);
+  },0);
 }
 
-// Init
+// Initialise
 function init(){
   updateBeerDisplay();
+  // Start button in overlay
   const startBtn=document.getElementById('startBtn');
   startBtn.addEventListener('click',()=>{
     startOverlay.style.display='none';
@@ -426,6 +507,16 @@ function init(){
     rightBtn.style.display='inline-block';
     nextCard(true);
   }, {once:true});
+  // Enable sound manually
+  gateBtn.addEventListener('click',()=>{
+    if(audio){
+      audio.play().then(()=>{ gateBtn.style.display='none'; }).catch(()=>{});
+    }
+    if(sfx){
+      sfx.play().then(()=>{ gateBtn.style.display='none'; }).catch(()=>{});
+    }
+  });
+  // Guess buttons
   leftBtn.addEventListener('click',()=>{
     const c=deck.querySelector('.card'); if(!c) return;
     const idx=Math.max(0,ptr-1);
@@ -436,7 +527,7 @@ function init(){
     const idx=Math.max(0,ptr-1);
     answer(c,SONGS[idx],false);
   });
-  // Glow following cursor
+  // Glow tracking
   const glow=document.querySelector('.glow');
   window.addEventListener('pointermove',e=>{
     glow.style.setProperty('--x',(e.clientX/innerWidth)*100+'%');
